@@ -1,0 +1,140 @@
+
+<!--
+  Copyright (c) 2025 渟雲. All rights reserved.
+
+  Licensed under the TOSSRCU 2025.9 License (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/M3351AN/M3351AN/9e7630a8511b8306c62952ca1a4f1ce0cc5b784a/LICENSE
+
+  -----------------------------------------------------------------------------
+  File: index.html
+  Author: 渟雲 (quq[at]outlook.it)
+  Date: 2025-11-02
+
+  Description:
+    This file includes functions of web based SPT Fuyu Patcher
+  -----------------------------------------------------------------------------
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SPT Fuyu Patcher - Pure JS</title>
+</head>
+<body>
+    <input type="file" id="fileInput">
+    <button onclick="patchFile()"></button>
+    <div id="status"></div>
+
+    <script>
+        const messages = {
+            zh: {
+                selectFile: "请选择文件",
+                success: "修补成功",
+                unknownError: "未知错误",
+                notFound: "未找到目标字节序列",
+                alreadyPatched: "文件已修补过",
+                notExe: "不是有效的可执行文件",
+                button: "修补文件"
+            },
+            en: {
+                selectFile: "Please select a file",
+                success: "Patch successful",
+                unknownError: "Unknown error",
+                notFound: "Target byte sequence not found",
+                alreadyPatched: "File already patched",
+                notExe: "Not a valid executable file",
+                button: "Patch File"
+            }
+        };
+
+        const userLang = navigator.language.startsWith("zh") ? "zh" : "en";
+        const t = messages[userLang];
+
+        document.querySelector("button").textContent = t.button;
+
+        const pattern = [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x07, 0x16, 0xFE, 0x01, 0x2A];
+        const replacement = [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x16, 0x16, 0xFE, 0x01, 0x2A];
+
+        function findAndReplacePattern(data) {
+            if (data.length < 2 || data[0] !== 0x4D || data[1] !== 0x5A) {
+                return { success: false, error: "NotExecutable" };
+            }
+            
+            for (let i = 0; i <= data.length - pattern.length; i++) {
+                let found = true;
+                for (let j = 0; j < pattern.length; j++) {
+                    if (data[i + j] !== pattern[j]) {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found) {
+                    for (let j = 0; j < replacement.length; j++) {
+                        data[i + j] = replacement[j];
+                    }
+                    return { success: true };
+                }
+            }
+            
+            for (let i = 0; i <= data.length - replacement.length; i++) {
+                let found = true;
+                for (let j = 0; j < replacement.length; j++) {
+                    if (data[i + j] !== replacement[j]) {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found) {
+                    return { success: false, error: "AlreadyPatched" };
+                }
+            }
+            
+            return { success: false, error: "PatternNotFound" };
+        }
+
+        function patchFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert(t.selectFile);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const buffer = e.target.result;
+                    const bytes = new Uint8Array(buffer);
+                    
+                    const result = findAndReplacePattern(bytes);
+                    
+                    if (result.success) {
+                        const blob = new Blob([bytes], {type: 'application/octet-stream'});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'patched_' + file.name;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        document.getElementById('status').textContent = t.success;
+                    } else {
+                        let errorMsg = t.unknownError;
+                        if (result.error === "PatternNotFound") errorMsg = t.notFound;
+                        else if (result.error === "AlreadyPatched") errorMsg = t.alreadyPatched;
+                        else if (result.error === "NotExecutable") errorMsg = t.notExe;
+                        document.getElementById('status').textContent = 'Error: ' + errorMsg;
+                    }
+                } catch (error) {
+                    document.getElementById('status').textContent = 'Error: ' + error.message;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>
