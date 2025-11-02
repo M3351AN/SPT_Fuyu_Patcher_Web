@@ -1,0 +1,428 @@
+
+<!--
+  Copyright (c) 2025 渟雲. All rights reserved.
+
+  Licensed under the TOSSRCU 2025.9 License (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/M3351AN/M3351AN/9e7630a8511b8306c62952ca1a4f1ce0cc5b784a/LICENSE
+
+  -----------------------------------------------------------------------------
+  File: iframe.html
+  Author: 渟雲 (quq[at]outlook.it)
+  Date: 2025-11-03
+
+  Description:
+    This file includes core functions of web based SPT Fuyu Patcher
+  -----------------------------------------------------------------------------
+-->
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: transparent;
+            color: #2c3e50;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(90deg, #2c3e50, #3498db);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .lang-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        
+        .lang-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 13px;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #bdc3c7;
+            border-radius: 6px;
+            padding: 25px 15px;
+            text-align: center;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+            background-color: #f8f9fa;
+        }
+        
+        .upload-area:hover {
+            border-color: #3498db;
+            background-color: #f0f7ff;
+        }
+        
+        .upload-area.highlight {
+            border-color: #3498db;
+            background-color: #e8f4ff;
+        }
+        
+        .upload-icon {
+            font-size: 35px;
+            color: #3498db;
+            margin-bottom: 8px;
+        }
+        
+        .upload-text {
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-info {
+            margin-top: 8px;
+            padding: 6px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            display: none;
+            font-size: 13px;
+        }
+        
+        .btn {
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            font-size: 13px;
+        }
+        
+        .status.success {
+            background-color: rgba(46, 204, 113, 0.1);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+        }
+        
+        .status.error {
+            background-color: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 12px;
+            color: #7f8c8d;
+            font-size: 11px;
+            border-top: 1px solid #ecf0f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="lang-toggle" id="langToggle">EN/中文</button>
+            <h1 id="title">SPT Fuyu 在线修补器</h1>
+            <p id="subtitle">绕过SPT启动器正版验证</p>
+        </header>
+        
+        <div class="content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3 class="upload-text" id="uploadText">选择或拖放启动器可执行文件到此处</h3>
+                <p id="fileSupport">例如 SPT.Launcher.exe</p>
+                <input type="file" id="fileInput" class="file-input" accept=".exe">
+                <button class="btn" id="selectFileBtn">选择文件</button>
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+            
+            <button class="btn" id="patchBtn" disabled>修补文件</button>
+            
+            <div class="status" id="status"></div>
+        </div>
+        
+        <footer>
+            <p>SPT Fuyu Patcher Web &copy; 2025 渟雲</p>
+        </footer>
+    </div>
+
+    <script>
+        // 多语言文本定义
+        const messages = {
+            zh: {
+                title: "SPT Fuyu 在线修补器",
+                subtitle: "绕过SPT启动器正版验证",
+                uploadText: "选择或拖放启动器可执行文件到此处",
+                fileSupport: "例如 SPT.Launcher.exe",
+                selectFileBtn: "选择文件",
+                patchButton: "修补文件",
+                selectFile: "请选择文件",
+                success: "修补成功",
+                unknownError: "未知错误",
+                notFound: "未找到目标字节序列",
+                alreadyPatched: "文件已修补过",
+                notExe: "不是有效的可执行文件",
+                fileSelected: "已选择文件: ",
+                langToggle: "EN"
+            },
+            en: {
+                title: "SPT Fuyu Patcher Online",
+                subtitle: "bypass EFT live install validate of SPT launcher",
+                uploadText: "Select or drag & drop launcher executable file here",
+                fileSupport: "i.e., SPT.Launcher.exe",
+                selectFileBtn: "Select File",
+                patchButton: "Patch File",
+                selectFile: "Please select a file",
+                success: "Patch successful",
+                unknownError: "Unknown error",
+                notFound: "Target byte sequence not found",
+                alreadyPatched: "File already patched",
+                notExe: "Not a valid executable file",
+                fileSelected: "File selected: ",
+                langToggle: "中文"
+            }
+        };
+
+        function detectUserLanguage() {
+            const browserLang = navigator.language || navigator.userLanguage;
+            if (browserLang.startsWith("zh")) {
+                return "zh";
+            } else {
+                return "en";
+            }
+        }
+
+        let currentLang = detectUserLanguage();
+        let t = messages[currentLang];
+
+        function updateTexts() {
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('subtitle').textContent = t.subtitle;
+            document.getElementById('uploadText').textContent = t.uploadText;
+            document.getElementById('fileSupport').textContent = t.fileSupport;
+            document.getElementById('selectFileBtn').textContent = t.selectFileBtn;
+            document.getElementById('patchBtn').textContent = t.patchButton;
+            document.getElementById('langToggle').textContent = t.langToggle;
+            
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length > 0) {
+                document.getElementById('fileInfo').textContent = t.fileSelected + fileInput.files[0].name;
+            }
+        }
+
+        document.getElementById('langToggle').addEventListener('click', function() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            t = messages[currentLang];
+            updateTexts();
+        });
+
+        updateTexts();
+
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const patchBtn = document.getElementById('patchBtn');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const statusDiv = document.getElementById('status');
+
+        selectFileBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                fileInfo.textContent = t.fileSelected + file.name;
+                fileInfo.style.display = 'block';
+                patchBtn.disabled = false;
+            }
+        });
+
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('highlight');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.classList.remove('highlight');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('highlight');
+            
+            if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                fileInput.files = e.dataTransfer.files;
+                fileInfo.textContent = t.fileSelected + file.name;
+                fileInfo.style.display = 'block';
+                patchBtn.disabled = false;
+            }
+        });
+
+        const pattern = 
+        [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x07, 0x16, 0xFE, 0x01, 0x2A];
+        const replacement = 
+        [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x16, 0x16, 0xFE, 0x01, 0x2A];
+
+        function findAndReplacePattern(data) {
+            if (data.length < 2 || data[0] !== 0x4D || data[1] !== 0x5A) {
+                return { success: false, error: "NotExecutable" };
+            }
+            
+            for (let i = 0; i <= data.length - pattern.length; i++) {
+                let found = true;
+                for (let j = 0; j < pattern.length; j++) {
+                    if (data[i + j] !== pattern[j]) {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found) {
+                    for (let j = 0; j < replacement.length; j++) {
+                        data[i + j] = replacement[j];
+                    }
+                    return { success: true };
+                }
+            }
+            
+            for (let i = 0; i <= data.length - replacement.length; i++) {
+                let found = true;
+                for (let j = 0; j < replacement.length; j++) {
+                    if (data[i + j] !== replacement[j]) {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found) {
+                    return { success: false, error: "AlreadyPatched" };
+                }
+            }
+            
+            return { success: false, error: "PatternNotFound" };
+        }
+
+        function patchFile() {
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert(t.selectFile);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const buffer = e.target.result;
+                    const bytes = new Uint8Array(buffer);
+                    
+                    const result = findAndReplacePattern(bytes);
+                    
+                    if (result.success) {
+                        const blob = new Blob([bytes], {type: 'application/octet-stream'});
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'patched_' + file.name;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        
+                        statusDiv.textContent = t.success;
+                        statusDiv.className = 'status success';
+                        statusDiv.style.display = 'block';
+                    } else {
+                        let errorMsg = t.unknownError;
+                        if (result.error === "PatternNotFound") errorMsg = t.notFound;
+                        else if (result.error === "AlreadyPatched") errorMsg = t.alreadyPatched;
+                        else if (result.error === "NotExecutable") errorMsg = t.notExe;
+                        
+                        statusDiv.textContent = 'Error: ' + errorMsg;
+                        statusDiv.className = 'status error';
+                        statusDiv.style.display = 'block';
+                    }
+                } catch (error) {
+                    statusDiv.textContent = 'Error: ' + error.message;
+                    statusDiv.className = 'status error';
+                    statusDiv.style.display = 'block';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        patchBtn.addEventListener('click', patchFile);
+    </script>
+</body>
+</html>
