@@ -334,15 +334,23 @@
         });
 
         const pattern = 
-        [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x07, 0x16, 0xFE, 0x01, 0x2A];
+            [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x07, 0x16, 0xFE, 0x01, 0x2A];
         const replacement = 
-        [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x16, 0x16, 0xFE, 0x01, 0x2A];
+            [0x26, 0x15, 0x0B, 0xDE, 0x00, 0x16, 0x16, 0xFE, 0x01, 0x2A];
+
+        const patternNew = 
+            [0xDE, 0x00, 0x11, 0x04, 0x16, 0xFE, 0x01, 0x2A];
+        const replacementNew = 
+            [0xDE, 0x00, 0x00, 0x16, 0x16, 0xFE, 0x01, 0x2A];
 
         function findAndReplacePattern(data) {
             if (data.length < 2 || data[0] !== 0x4D || data[1] !== 0x5A) {
                 return { success: false, error: "NotExecutable" };
             }
-            
+    
+            let foundIndex = -1;
+            let foundPattern = null;
+    
             for (let i = 0; i <= data.length - pattern.length; i++) {
                 let found = true;
                 for (let j = 0; j < pattern.length; j++) {
@@ -352,13 +360,42 @@
                     }
                 }
                 if (found) {
-                    for (let j = 0; j < replacement.length; j++) {
-                        data[i + j] = replacement[j];
-                    }
-                    return { success: true };
+                    foundIndex = i;
+                    foundPattern = "original";
+                    break;
                 }
             }
-            
+    
+            if (foundIndex === -1) {
+                for (let i = 0; i <= data.length - patternNew.length; i++) {
+                    let found = true;
+                    for (let j = 0; j < patternNew.length; j++) {
+                        if (data[i + j] !== patternNew[j]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        foundIndex = i;
+                        foundPattern = "new";
+                        break;
+                    }
+                }
+            }
+    
+            if (foundIndex !== -1) {
+                if (foundPattern === "original") {
+                    for (let j = 0; j < replacement.length; j++) {
+                        data[foundIndex + j] = replacement[j];
+                    }
+                } else {
+                    for (let j = 0; j < replacementNew.length; j++) {
+                        data[foundIndex + j] = replacementNew[j];
+                    }
+                }
+                return { success: true };
+            }
+    
             for (let i = 0; i <= data.length - replacement.length; i++) {
                 let found = true;
                 for (let j = 0; j < replacement.length; j++) {
@@ -371,7 +408,20 @@
                     return { success: false, error: "AlreadyPatched" };
                 }
             }
-            
+    
+            for (let i = 0; i <= data.length - replacementNew.length; i++) {
+                let found = true;
+                for (let j = 0; j < replacementNew.length; j++) {
+                    if (data[i + j] !== replacementNew[j]) {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found) {
+                    return { success: false, error: "AlreadyPatched" };
+                }
+            }
+    
             return { success: false, error: "PatternNotFound" };
         }
 
