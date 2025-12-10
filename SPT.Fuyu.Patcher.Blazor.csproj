@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
+    <IlcTrimAnalysis>true</IlcTrimAnalysis>
+    <BlazorEnableCompression>true</BlazorEnableCompression>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
   </PropertyGroup>
 
   <ItemGroup>
