@@ -66,6 +66,15 @@
         content: var(--blazor-load-percentage-text, "Loading");
     }
 
+
+#loading-text {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 24px;
+    animation: fader 1s linear infinite;
+}
+
 * {
     margin: 0;
     padding: 0;
