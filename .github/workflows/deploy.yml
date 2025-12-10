@@ -28,7 +28,10 @@ jobs:
       run: dotnet restore
 
     - name: Publish project
-      run: dotnet publish -c Release -o ./publish --nologo
+      run: |
+        rm -rf ./bin ./obj ./publish
+        dotnet nuget locals all --clear
+        dotnet publish SPT.Fuyu.Patcher.Blazor.csproj --no-aot -c Release -o ./publish -p:RunAOTCompilation=false --nologo
 
     - name: Create .nojekyll file
       run: |
