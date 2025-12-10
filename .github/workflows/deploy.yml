@@ -36,8 +36,13 @@ jobs:
         touch .nojekyll
 
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+      uses: JamesIves/github-pages-deploy-action@v4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ${{ env.PUBLISH_OUTPUT_DIR }}
-        publish_branch: gh-pages
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: gh-pages
+        folder: ${{ env.PUBLISH_OUTPUT_DIR }}
+        clean: true
+        clean-exclude: | 
+          .nojekyll
+          CNAME
+        single-commit: true
