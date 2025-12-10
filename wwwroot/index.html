@@ -22,9 +22,9 @@
     <title>SPT Fuyu Patcher</title>
     <base href="/" />
     <link rel="icon" type="image/x-icon" href="icon.ico">
-    <link rel="preload" href="_framework/blazor.webassembly.js" as="script">
-    <link rel="preload" href="_framework/dotnet.js" as="script">
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="preload" href="_framework/blazor.webassembly.js" as="script" crossorigin="anonymous">
+    <link rel="preload" href="_framework/dotnet.js" as="script" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/app.css" media="print" onload="this.media='all'" />
     <link href="SPT.Fuyu.Patcher.Blazor.styles.css" rel="stylesheet" />
     <style>
         @keyframes fader {
@@ -45,6 +45,41 @@
             font-size: 24px;
             animation: fader 1s linear infinite;
         }
+
+
+        .loading-progress {
+            position: relative;
+            display: block;
+            width: 8rem;
+            height: 8rem;
+            margin: 20vh auto 1rem auto;
+        }
+
+            .loading-progress circle {
+                fill: none;
+                stroke: #e0e0e0;
+                stroke-width: 0.6rem;
+                transform-origin: 50% 50%;
+                transform: rotate(-90deg);
+            }
+
+                .loading-progress circle:last-child {
+                    stroke: #1b6ec2;
+                    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+                    transition: stroke-dasharray 0.05s ease-in-out;
+                }
+
+        .loading-progress-text {
+            position: absolute;
+            text-align: center;
+            font-weight: bold;
+            inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+        }
+
+            .loading-progress-text:after {
+                content: var(--blazor-load-percentage-text, "Loading");
+            }
+
     </style>
 </head>
 <body>
@@ -60,13 +95,30 @@
 
     <div id="blazor-error-ui">An unhandled error has occurred.<a href="" class="reload">Reload</a><a class="dismiss">🗙</a></div>
 
-    <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        setTimeout(() => {
+            const script = document.createElement('script');
+            script.src = '_framework/blazor.webassembly.js';
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+            script.onload = function () {
+                const dotnetScript = document.createElement('script');
+                dotnetScript.src = '_framework/dotnet.js';
+                dotnetScript.async = true;
+                dotnetScript.crossOrigin = 'anonymous';
+                document.head.appendChild(dotnetScript);
+            };
+            document.head.appendChild(script);
+        }, 100);
+    </script>
+
     <script>
         const errorUi = document.getElementById('blazor-error-ui');
         if (errorUi) {
             errorUi.style.display = 'none';
         }
     </script>
+
     <script>
         window.initiateFileDownload = async (fileName, dotNetStream) => {
             try {
