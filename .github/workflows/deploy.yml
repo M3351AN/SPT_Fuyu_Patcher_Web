@@ -31,7 +31,7 @@ jobs:
       run: |
         rm -rf ./bin ./obj ./publish
         dotnet nuget locals all --clear
-        dotnet publish SPT.Fuyu.Patcher.Blazor.csproj --no-aot -c Release -o ./publish -p:RunAOTCompilation=false --nologo
+        dotnet publish SPT.Fuyu.Patcher.Blazor.csproj -c Release -o ./publish -p:RunAOTCompilation=false --nologo
 
     - name: Create .nojekyll file
       run: |
