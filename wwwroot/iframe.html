@@ -26,6 +26,13 @@
     <link rel="preload" href="_framework/dotnet.js" as="script">
     <link rel="stylesheet" href="css/app.css" />
     <link href="SPT.Fuyu.Patcher.Blazor.styles.css" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -36,36 +43,41 @@
         <div class="loading-progress-text"></div>
     </div>
 
-
-    <div id="blazor-error-ui">An unhandled error has occurred.<a href="" class="reload">Reload</a><a class="dismiss">🗙</a></div>
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
 
     <script src="_framework/blazor.webassembly.js"></script>
     <script>
         const errorUi = document.getElementById('blazor-error-ui');
-        if (errorUi) {
-            errorUi.style.display = 'none';
-        }
-    </script>
-    <script>
+        errorUi.style.display = 'none';
+
         window.initiateFileDownload = async (fileName, dotNetStream) => {
             try {
                 const data = await dotNetStream.arrayBuffer();
-                const blob = new Blob([data], { type: 'application/octet-stream' });
-                const url = window.URL.createObjectURL(blob);
-
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                window.URL.revokeObjectURL(url);
-                console.log(`Download started: ${fileName}`);
+                const blob = new Blob([data]);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
                 return true;
-            } catch (error) {
-                console.error('Download failed:', error);
+            } catch {
                 return false;
+            }
+        };
+
+        window.sendToParent = (message) => {
+            if (isInIframe && window.parent) {
+                window.parent.postMessage({
+                    type: 'SPT_PATCHER_MESSAGE',
+                    data: message
+                }, '*');
             }
         };
     </script>

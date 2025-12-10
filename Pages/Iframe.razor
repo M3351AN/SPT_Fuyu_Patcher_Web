@@ -20,16 +20,6 @@
 @inject ExeAnalyzerService AnalyzerService
 @inject JsInteropService JsInterop
 @implements IDisposable
-
-<PageTitle>@GetText("title")</PageTitle>
-
-<div class="container" style="transform: scale(0.8); transform-origin: top left; width: 125%; height: 125%;">
-    <header>
-        <button class="lang-toggle" @onclick="ToggleLanguage">@GetText("langToggle")</button>
-        <h1>@GetText("title")</h1>
-        <p>@GetText("subtitle")</p>
-    </header>
-
     <div class="content">
         <div class="upload-area" onclick="document.getElementById('fileInput').click()">
             <div class="upload-icon">📁</div>
@@ -76,7 +66,6 @@
     <footer>
         <p>SPT Fuyu Patcher Web &copy; 2025 渟雲| <a href="https://github.com/M3351AN/SPT_Fuyu_Patcher_Web" target="_blank">GitHub</a></p>
     </footer>
-</div>
 
 <link href="css/app.css" rel="stylesheet" />
 <style>
@@ -99,13 +88,10 @@
     {
         ["zh"] = new()
         {
-            ["title"] = "SPT Fuyu 在线修补器",
-            ["subtitle"] = "在线修补SPT启动器 绕过正版验证",
             ["uploadText"] = "选择或拖放启动器可执行文件到此处",
             ["fileSupport"] = "例如 SPT.Launcher.exe",
             ["fileSelected"] = "已选择文件",
             ["patchButton"] = "修补文件",
-            ["langToggle"] = "EN",
             ["selectFile"] = "请选择文件",
             ["success"] = "修补成功",
             ["unknownError"] = "未知错误",
@@ -115,13 +101,10 @@
         },
         ["en"] = new()
         {
-            ["title"] = "SPT Fuyu Patcher Online",
-            ["subtitle"] = "bypass EFT live install validate of SPT launcher",
             ["uploadText"] = "Select or drag & drop launcher executable file here",
             ["fileSupport"] = "i.e., SPT.Launcher.exe",
             ["fileSelected"] = "File selected",
             ["patchButton"] = "Patch File",
-            ["langToggle"] = "中文",
             ["selectFile"] = "Please select a file",
             ["success"] = "Patch successful",
             ["unknownError"] = "Unknown error",
