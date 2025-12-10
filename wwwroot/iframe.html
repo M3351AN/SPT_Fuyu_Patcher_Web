@@ -1,0 +1,62 @@
+<!--
+  Copyright (c) 2025 渟雲. All rights reserved.
+
+  Licensed under the TOSSRCU 2025.9 License (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/M3351AN/M3351AN/9e7630a8511b8306c62952ca1a4f1ce0cc5b784a/LICENSE
+
+  -----------------------------------------------------------------------------
+  File: iframe.html
+  Author: 渟雲 (quq[at]outlook.it)
+  Date: 2025-12-10
+
+  -----------------------------------------------------------------------------
+-->
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPT Fuyu Patcher</title>
+    <base href="/" />
+    <link rel="icon" type="image/x-icon" href="icon.ico">
+</head>
+<body>
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">An unhandled error has occurred.<a href="" class="reload">Reload</a><a class="dismiss">🗙</a></div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        const errorUi = document.getElementById('blazor-error-ui');
+        if (errorUi) {
+            errorUi.style.display = 'none';
+        }
+    </script>
+    <script>
+        window.initiateFileDownload = async (fileName, dotNetStream) => {
+            try {
+                const data = await dotNetStream.arrayBuffer();
+                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const url = window.URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                window.URL.revokeObjectURL(url);
+                console.log(`Download started: ${fileName}`);
+                return true;
+            } catch (error) {
+                console.error('Download failed:', error);
+                return false;
+            }
+        };
+    </script>
+</body>
+</html>

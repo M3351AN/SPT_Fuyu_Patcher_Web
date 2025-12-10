@@ -1,0 +1,301 @@
+<!--
+  Copyright (c) 2025 渟雲. All rights reserved.
+
+  Licensed under the TOSSRCU 2025.9 License (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/M3351AN/M3351AN/9e7630a8511b8306c62952ca1a4f1ce0cc5b784a/LICENSE
+
+  -----------------------------------------------------------------------------
+  File: Iframe.razor
+  Author: 渟雲 (quq[at]outlook.it)
+  Date: 2025-12-10
+
+  -----------------------------------------------------------------------------
+-->
+@page "/iframe"
+@using Microsoft.AspNetCore.Components.Forms
+@using SPT.Fuyu.Patcher.Blazor.Services
+@inject ExeAnalyzerService AnalyzerService
+@inject JsInteropService JsInterop
+@implements IDisposable
+
+<PageTitle>@GetText("title")</PageTitle>
+
+<div class="container" style="transform: scale(0.8); transform-origin: top left; width: 125%; height: 125%;">
+    <header>
+        <button class="lang-toggle" @onclick="ToggleLanguage">@GetText("langToggle")</button>
+        <h1>@GetText("title")</h1>
+        <p>@GetText("subtitle")</p>
+    </header>
+
+    <div class="content">
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📁</div>
+            <h3 class="upload-text">@GetText("uploadText")</h3>
+            <p>@GetText("fileSupport")</p>
+
+            <InputFile OnChange="OnFileSelected"
+                       accept=".exe"
+                       class="file-input"
+                       id="fileInput" />
+
+            @if (_selectedFile != null)
+            {
+                <div class="file-info">
+                    @GetText("fileSelected"): @_selectedFile.Name (@(_selectedFile.Size / 1024) KB)
+                </div>
+            }
+        </div>
+
+        @if (_isProcessing)
+        {
+            <div class="progress-container">
+                <div class="progress">
+                    <div class="progress-bar" style="width: @_progress%;">
+                        @_progress%
+                    </div>
+                </div>
+                <div class="progress-text">@_progressMessage</div>
+            </div>
+        }
+
+        <button class="btn" @onclick="StartPatchProcess" disabled="@(_selectedFile == null || _isProcessing)">
+            @GetText("patchButton")
+        </button>
+
+        @if (_showStatus)
+        {
+            <div class="status @_statusClass">
+                @_statusMessage
+            </div>
+        }
+    </div>
+
+    <footer>
+        <p>SPT Fuyu Patcher Web &copy; 2025 渟雲| <a href="https://github.com/M3351AN/SPT_Fuyu_Patcher_Web" target="_blank">GitHub</a></p>
+    </footer>
+</div>
+
+<link href="css/app.css" rel="stylesheet" />
+<style>
+    body {
+        background: transparent;
+    }
+</style>
+@code {
+    private IBrowserFile? _selectedFile;
+    private bool _isProcessing = false;
+    private bool _showStatus = false;
+    private string _statusMessage = "";
+    private string _statusClass = "";
+    private int _progress = 0;
+    private string _progressMessage = "";
+    private string _currentLanguage = "zh";
+
+    // 多语言字典
+    private Dictionary<string, Dictionary<string, string>> _messages = new()
+    {
+        ["zh"] = new()
+        {
+            ["title"] = "SPT Fuyu 在线修补器",
+            ["subtitle"] = "在线修补SPT启动器 绕过正版验证",
+            ["uploadText"] = "选择或拖放启动器可执行文件到此处",
+            ["fileSupport"] = "例如 SPT.Launcher.exe",
+            ["fileSelected"] = "已选择文件",
+            ["patchButton"] = "修补文件",
+            ["langToggle"] = "EN",
+            ["selectFile"] = "请选择文件",
+            ["success"] = "修补成功",
+            ["unknownError"] = "未知错误",
+            ["notFound"] = "未找到目标字节序列",
+            ["alreadyPatched"] = "文件已经修补过",
+            ["notExe"] = "请选择一个有效的EXE文件"
+        },
+        ["en"] = new()
+        {
+            ["title"] = "SPT Fuyu Patcher Online",
+            ["subtitle"] = "bypass EFT live install validate of SPT launcher",
+            ["uploadText"] = "Select or drag & drop launcher executable file here",
+            ["fileSupport"] = "i.e., SPT.Launcher.exe",
+            ["fileSelected"] = "File selected",
+            ["patchButton"] = "Patch File",
+            ["langToggle"] = "中文",
+            ["selectFile"] = "Please select a file",
+            ["success"] = "Patch successful",
+            ["unknownError"] = "Unknown error",
+            ["notFound"] = "Target byte sequence not found",
+            ["alreadyPatched"] = "File already patched",
+            ["notExe"] = "Please select a valid EXE file"
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var browserLang = await JsInterop.GetLanguageAsync();
+            if (browserLang?.StartsWith("zh", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _currentLanguage = "zh";
+            }
+            else
+            {
+                _currentLanguage = "en";
+            }
+        }
+        catch
+        {
+            _currentLanguage = "zh";
+        }
+    }
+
+    private string GetText(string key)
+    {
+        if (_messages.ContainsKey(_currentLanguage) && _messages[_currentLanguage].ContainsKey(key))
+        {
+            return _messages[_currentLanguage][key];
+        }
+        return key;
+    }
+
+    private void ToggleLanguage()
+    {
+        _currentLanguage = _currentLanguage == "zh" ? "en" : "zh";
+        StateHasChanged();
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        _showStatus = false;
+
+        if (_selectedFile == null) return;
+
+        if (_selectedFile.Size > 100 * 1024 * 1024)
+        {
+            await JsInterop.AlertAsync("File too large! Please select a file less than 100MB.");
+            _selectedFile = null;
+            return;
+        }
+
+        if (!_selectedFile.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            await JsInterop.AlertAsync(GetText("notExe"));
+            _selectedFile = null;
+            return;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task StartPatchProcess()
+    {
+        if (_selectedFile == null) return;
+
+        _isProcessing = true;
+        _progress = 0;
+        _showStatus = false;
+        StateHasChanged();
+
+        try
+        {
+            await UpdateProgress(10, _currentLanguage == "zh" ? "正在读取文件..." : "Reading file...");
+
+            using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024);
+
+            await UpdateProgress(30, _currentLanguage == "zh" ? "正在分析文件..." : "Analyzing file...");
+
+            var result = await AnalyzerService.AnalyzeFileAsync(stream, _selectedFile.Name);
+
+            if (!result.Success)
+            {
+                await ShowError(GetText("unknownError") + ": " + result.ErrorMessage);
+                return;
+            }
+
+            if (result.AlreadyPatched)
+            {
+                await ShowError(GetText("alreadyPatched"));
+                return;
+            }
+
+            if (result.PatchOffset < 0)
+            {
+                await ShowError(GetText("notFound"));
+                return;
+            }
+
+            await UpdateProgress(70, _currentLanguage == "zh" ? "正在应用修补..." : "Applying patch...");
+
+            var modifiedData = await AnalyzerService.ApplyPatchAsync(result);
+
+            await UpdateProgress(90, _currentLanguage == "zh" ? "正在准备下载..." : "Preparing download...");
+
+            var fileName = Path.GetFileNameWithoutExtension(result.FileName) + "_patched.exe";
+
+            using var fileStream = new MemoryStream(modifiedData);
+            using var streamRef = new DotNetStreamReference(fileStream);
+
+            await JsInterop.InitiateDownloadAsync(fileName, streamRef);
+
+            await UpdateProgress(100, _currentLanguage == "zh" ? "下载已开始！" : "Download started!");
+
+            await ShowSuccess(GetText("success"));
+
+            await Task.Delay(2000);
+
+            ResetState();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during patching: {ex}");
+            await ShowError(GetText("unknownError") + ": " + ex.Message);
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UpdateProgress(int progress, string message)
+    {
+        _progress = progress;
+        _progressMessage = message;
+        StateHasChanged();
+        await Task.Delay(100);
+    }
+
+    private async Task ShowSuccess(string message)
+    {
+        _statusMessage = message;
+        _statusClass = "success";
+        _showStatus = true;
+        StateHasChanged();
+    }
+
+    private async Task ShowError(string message)
+    {
+        _statusMessage = message;
+        _statusClass = "error";
+        _showStatus = true;
+        _isProcessing = false;
+        StateHasChanged();
+    }
+
+    private void ResetState()
+    {
+        _isProcessing = false;
+        _progress = 0;
+        _showStatus = false;
+        _selectedFile = null;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _selectedFile = null;
+    }
+}
