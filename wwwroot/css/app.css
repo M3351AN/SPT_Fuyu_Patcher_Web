@@ -33,25 +33,6 @@
         top: 0.5rem;
     }
 
-@keyframes fader {
-
-    0%, 100% {
-        color: rgba(0, 0, 0, 1);
-    }
-
-    50% {
-        color: rgba(0, 0, 0, 0);
-    }
-}
-
-#loading-text {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    font-size: 24px;
-    animation: fader 1s linear infinite;
-}
-
 .loading-progress {
     position: relative;
     display: block;

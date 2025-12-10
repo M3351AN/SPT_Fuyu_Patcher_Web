@@ -29,7 +29,7 @@ jobs:
         rm -rf ./bin ./obj ./publish
         dotnet nuget locals all --clear
         dotnet publish SPT.Fuyu.Patcher.Blazor.csproj -c Release -o ./publish -p:RunAOTCompilation=false --nologo -v diag
-
+        
     - name: Setup Node.js for CSS minification
       uses: actions/setup-node@v4
       with:
@@ -38,7 +38,7 @@ jobs:
     - name: Minify CSS files
       run: |
         npm install -g csso-cli
-        find ${{ env.PUBLISH_OUTPUT_DIR }} -name "*.css" -exec csso {} --restructure-off -o {} \;
+        find ${{ env.PUBLISH_OUTPUT_DIR }} -name "*.css" -exec csso {} -o {} \;
 
     - name: Create .nojekyll file
       run: |
