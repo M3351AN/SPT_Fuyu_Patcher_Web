@@ -1,7 +1,7 @@
 # SPT_Fuyu_Patcher_Web
 A web based SPT Fuyu
 
-- No wasm
+- Blazor based
 - No Php
 - Pure frontend
 
