@@ -12,6 +12,8 @@
 // Date: 2025-12-10
 //
 // -----------------------------------------------------------------------------
+using System.Buffers;
+using System.Collections.Concurrent;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
@@ -19,57 +21,54 @@ namespace SPT.Fuyu.Patcher.Blazor.Services
 {
     public class ExeAnalyzerService
     {
+
+        private static readonly ArrayPool<byte> ByteArrayPool = ArrayPool<byte>.Shared;
+
         public class AnalysisResult
         {
-            public string FileName { get; set; } = string.Empty;
+            public string FileName { get; init; } = string.Empty;
             public long FileSize { get; set; }
             public bool Success { get; set; }
             public string ErrorMessage { get; set; } = string.Empty;
-            public List<string> Logs { get; set; } = new();
-            public List<MZHeader> MzHeaders { get; set; } = new();
-            public List<EmbeddedAssembly> EmbeddedAssemblies { get; set; } = new();
+            public List<string> Logs { get; } = new();
+            public List<MZHeader> MzHeaders { get; } = new();
+            public List<EmbeddedAssembly> EmbeddedAssemblies { get; } = new();
             public ValidateMethodInfo? ValidateMethod { get; set; }
-            public List<PatternMatch> PatternMatches { get; set; } = new();
+            public List<PatternMatch> PatternMatches { get; } = new();
             public long PatchOffset { get; set; } = -1;
             public bool AlreadyPatched { get; set; }
             public byte[]? OriginalData { get; set; }
-            public byte[]? ModifiedData { get; set; }
         }
 
-        public class MZHeader
-        {
-            public long Offset { get; set; }
-            public int PESize { get; set; }
-        }
+        public record MZHeader(long Offset, int PESize);
 
-        public class EmbeddedAssembly
-        {
-            public long Offset { get; set; }
-            public int Size { get; set; }
-            public bool IsManaged { get; set; }
-        }
+        public record EmbeddedAssembly(long Offset, int Size, bool IsManaged);
 
-        public class ValidateMethodInfo
-        {
-            public string Namespace { get; set; } = string.Empty;
-            public string TypeName { get; set; } = string.Empty;
-            public string MethodName { get; set; } = string.Empty;
-            public int RVA { get; set; }
-            public long StartOffsetInAssembly { get; set; }
-            public long StartOffsetInFile { get; set; }
-        }
+        public record ValidateMethodInfo(
+            string Namespace,
+            string TypeName,
+            string MethodName,
+            int RVA,
+            long StartOffsetInAssembly,
+            long StartOffsetInFile
+        );
 
-        public class PatternMatch
+        public record PatternMatch(
+            long Offset,
+            byte[] Pattern,
+            string PatternType,
+            byte[] Context
+        )
         {
-            public long Offset { get; set; }
-            public byte[] Pattern { get; set; } = Array.Empty<byte>();
-            public string PatternType { get; set; } = string.Empty;
-            public byte[] Context { get; set; } = Array.Empty<byte>();
             public string HexString => BitConverter.ToString(Pattern).Replace("-", " ");
             public string OffsetHex => $"0x{Offset:X8}";
         }
 
-        public async Task<AnalysisResult> AnalyzeFileAsync(Stream fileStream, string fileName)
+        public async Task<AnalysisResult> AnalyzeFileAsync(
+            Stream fileStream,
+            string fileName,
+            IProgress<int>? progress = null,
+            CancellationToken cancellationToken = default)
         {
             var result = new AnalysisResult
             {
@@ -79,121 +78,121 @@ namespace SPT.Fuyu.Patcher.Blazor.Services
 
             try
             {
-                using var memoryStream = new MemoryStream();
-                await fileStream.CopyToAsync(memoryStream);
-                var exeData = memoryStream.ToArray();
+                progress?.Report(10);
+                byte[] exeData = await ReadStreamToPooledArrayAsync(fileStream, cancellationToken);
                 result.OriginalData = exeData;
                 result.FileSize = exeData.Length;
 
-                result.MzHeaders = FindMZHeaders(exeData);
+                progress?.Report(20);
+                result.MzHeaders.AddRange(FindMZHeaders(exeData));
+                result.Logs.Add($"Found {result.MzHeaders.Count} MZ headers");
 
-                bool foundValidateMethod = false;
-
-                foreach (var mzHeader in result.MzHeaders)
+                if (result.MzHeaders.Count == 0)
                 {
-                    if (IsManagedAssembly(exeData, (int)mzHeader.Offset))
-                    {
-                        var assemblyInfo = new EmbeddedAssembly
-                        {
-                            Offset = mzHeader.Offset,
-                            Size = mzHeader.PESize,
-                            IsManaged = true
-                        };
-                        result.EmbeddedAssemblies.Add(assemblyInfo);
-
-                        using var ms = new MemoryStream(exeData, (int)mzHeader.Offset, mzHeader.PESize);
-                        using var peReader = new PEReader(ms);
-
-                        if (peReader.HasMetadata)
-                        {
-                            var metadataReader = peReader.GetMetadataReader();
-
-                            foreach (var typeDefHandle in metadataReader.TypeDefinitions)
-                            {
-                                var typeDef = metadataReader.GetTypeDefinition(typeDefHandle);
-                                string typeName = metadataReader.GetString(typeDef.Name);
-                                string typeNamespace = metadataReader.GetString(typeDef.Namespace);
-
-                                if (typeName == "ValidationUtil" && typeNamespace == "SPT.Launcher.Helpers")
-                                {
-                                    foreach (var methodHandle in typeDef.GetMethods())
-                                    {
-                                        var methodDef = metadataReader.GetMethodDefinition(methodHandle);
-                                        string methodName = metadataReader.GetString(methodDef.Name);
-
-                                        if (methodName == "Validate")
-                                        {
-                                            int rva = methodDef.RelativeVirtualAddress;
-                                            if (rva == 0) continue;
-
-                                            long methodOffsetInAssembly = RvaToFileOffset(peReader, rva);
-                                            if (methodOffsetInAssembly < 0) continue;
-
-                                            long absoluteOffset = mzHeader.Offset + methodOffsetInAssembly;
-
-                                            var validateMethod = new ValidateMethodInfo
-                                            {
-                                                Namespace = typeNamespace,
-                                                TypeName = typeName,
-                                                MethodName = methodName,
-                                                RVA = rva,
-                                                StartOffsetInAssembly = methodOffsetInAssembly,
-                                                StartOffsetInFile = absoluteOffset
-                                            };
-                                            result.ValidateMethod = validateMethod;
-
-                                            var patterns = SearchPatternsNearMethod(exeData, absoluteOffset, result);
-                                            result.PatternMatches = patterns;
-
-                                            foundValidateMethod = true;
-                                            break;
-                                        }
-                                    }
-
-                                    if (foundValidateMethod) break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (foundValidateMethod) break;
+                    result.ErrorMessage = "No valid MZ header";
+                    return result;
                 }
 
-                if (!foundValidateMethod)
+                progress?.Report(30);
+                var validateMethods = await FindValidateMethodsParallelAsync(
+                    exeData,
+                    result.MzHeaders,
+                    cancellationToken);
+
+                var firstMethod = validateMethods.FirstOrDefault();
+                if (firstMethod != null)
                 {
-                    result.ErrorMessage = "Unfound Validate() Method";
-                    result.Logs.Add("Unfound Validate() Method");
+                    result.ValidateMethod = firstMethod;
+                    result.EmbeddedAssemblies.AddRange(validateMethods
+                        .Select(m => new EmbeddedAssembly(
+                            Offset: m.StartOffsetInFile - m.StartOffsetInAssembly,
+                            Size: result.MzHeaders.First(h => h.Offset == m.StartOffsetInFile - m.StartOffsetInAssembly).PESize,
+                            IsManaged: true)));
+
+                    progress?.Report(70);
+                    var patterns = SearchPatternsNearMethod(
+                        exeData,
+                        firstMethod.StartOffsetInFile,
+                        result);
+                    result.PatternMatches.AddRange(patterns);
+
+                    var unpatched = patterns.FirstOrDefault(p => p.PatternType == "Unpatched");
+                    if (unpatched != null)
+                    {
+                        result.PatchOffset = unpatched.Offset;
+                    }
+                    result.AlreadyPatched = patterns.Any(p => p.PatternType == "Patched");
+
+                    result.Success = true;
+                    result.Logs.Add($"Found method: {firstMethod.Namespace}.{firstMethod.TypeName}.{firstMethod.MethodName}");
                 }
                 else
                 {
-                    result.Success = true;
+                    result.ErrorMessage = "Unfound Validate() method";
+                    result.Logs.Add("Unfound Validate() method");
                 }
+
+                progress?.Report(100);
+            }
+            catch (OperationCanceledException)
+            {
+                result.ErrorMessage = "operation cancel";
+                result.Logs.Add("operation cancel");
             }
             catch (Exception ex)
             {
                 result.ErrorMessage = ex.Message;
-                result.Logs.Add($"Error: {ex.Message}");
+                result.Logs.Add($"parser error: {ex.Message}");
             }
 
             return result;
         }
 
+        private async Task<byte[]> ReadStreamToPooledArrayAsync(Stream stream, CancellationToken cancellationToken)
+        {
+            if (stream is MemoryStream ms)
+                return ms.ToArray();
+
+            long length = stream.Length;
+            if (length > int.MaxValue)
+                throw new InvalidOperationException("too large the file");
+
+            byte[] rented = ByteArrayPool.Rent((int)length);
+            try
+            {
+                int totalRead = 0;
+                while (totalRead < length)
+                {
+                    int read = await stream.ReadAsync(
+                        rented.AsMemory(totalRead, (int)length - totalRead),
+                        cancellationToken);
+                    if (read == 0) break;
+                    totalRead += read;
+                }
+
+                byte[] result = new byte[totalRead];
+                Array.Copy(rented, 0, result, 0, totalRead);
+                return result;
+            }
+            finally
+            {
+                ByteArrayPool.Return(rented);
+            }
+        }
+
         private List<MZHeader> FindMZHeaders(byte[] data)
         {
             var headers = new List<MZHeader>();
+            ReadOnlySpan<byte> span = data;
 
-            for (int i = 0; i < data.Length - 64; i++)
+            for (int i = 0; i <= span.Length - 64; i++)
             {
-                if (data[i] == 0x4D && data[i + 1] == 0x5A)
+                if (span[i] == 0x4D && span[i + 1] == 0x5A) // 'MZ'
                 {
-                    int peSize = GetPESize(data, i);
-                    if (peSize > 1024)
+                    int peSize = GetPESize(span, i);
+                    if (peSize > 1024 && i + peSize <= data.Length)
                     {
-                        headers.Add(new MZHeader
-                        {
-                            Offset = i,
-                            PESize = peSize
-                        });
+                        headers.Add(new MZHeader(i, peSize));
                     }
                 }
             }
@@ -201,15 +200,15 @@ namespace SPT.Fuyu.Patcher.Blazor.Services
             return headers;
         }
 
-        private int GetPESize(byte[] data, int start)
+        private int GetPESize(ReadOnlySpan<byte> data, int start)
         {
             try
             {
-                int peOffset = BitConverter.ToInt32(data, start + 0x3C);
+                int peOffset = BitConverter.ToInt32(data.Slice(start + 0x3C, 4).ToArray(), 0);
                 if (start + peOffset + 6 >= data.Length) return 0;
 
-                ushort numSections = BitConverter.ToUInt16(data, start + peOffset + 6);
-                ushort optionalHeaderSize = BitConverter.ToUInt16(data, start + peOffset + 20);
+                ushort numSections = BitConverter.ToUInt16(data.Slice(start + peOffset + 6, 2).ToArray(), 0);
+                ushort optionalHeaderSize = BitConverter.ToUInt16(data.Slice(start + peOffset + 20, 2).ToArray(), 0);
                 int sectionTableOffset = start + peOffset + 24 + optionalHeaderSize;
 
                 int maxSize = 0;
@@ -218,8 +217,8 @@ namespace SPT.Fuyu.Patcher.Blazor.Services
                     int sectionOffset = sectionTableOffset + i * 40;
                     if (sectionOffset + 40 > data.Length) break;
 
-                    int rawSize = BitConverter.ToInt32(data, sectionOffset + 16);
-                    int rawAddr = BitConverter.ToInt32(data, sectionOffset + 20);
+                    int rawSize = BitConverter.ToInt32(data.Slice(sectionOffset + 16, 4).ToArray(), 0);
+                    int rawAddr = BitConverter.ToInt32(data.Slice(sectionOffset + 20, 4).ToArray(), 0);
 
                     int sectionEnd = rawAddr + rawSize;
                     if (sectionEnd > maxSize)
@@ -234,20 +233,57 @@ namespace SPT.Fuyu.Patcher.Blazor.Services
             }
         }
 
+        private async Task<List<ValidateMethodInfo>> FindValidateMethodsParallelAsync(
+            byte[] exeData,
+            List<MZHeader> mzHeaders,
+            CancellationToken cancellationToken)
+        {
+            var results = new ConcurrentBag<ValidateMethodInfo>();
+
+            // Parallel.ForEachAsync
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount,
+                CancellationToken = cancellationToken
+            };
+
+            await Parallel.ForEachAsync(mzHeaders, parallelOptions, async (mzHeader, ct) =>
+            {
+                if (!IsManagedAssembly(exeData, (int)mzHeader.Offset))
+                    return;
+
+                var method = await Task.Run(() =>
+                    FindValidateMethodInAssembly(exeData, mzHeader), ct);
+
+                if (method != null)
+                {
+                    results.Add(method);
+                }
+            });
+
+            return results.ToList();
+        }
+
         private bool IsManagedAssembly(byte[] data, int start)
         {
             try
             {
-                int peOffset = BitConverter.ToInt32(data, start + 0x3C);
-                if (peOffset + 4 > data.Length) return false;
-                uint peSignature = BitConverter.ToUInt32(data, start + peOffset);
+                if (start + 0x3C + 4 > data.Length) return false;
+
+                int peOffset = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(
+                    data.AsSpan(start + 0x3C, 4));
+
+                if (start + peOffset + 24 + 0x60 + 8 > data.Length) return false;
+
+                uint peSignature = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                    data.AsSpan(start + peOffset, 4));
                 if (peSignature != 0x00004550) return false;
 
-                int dataDirOffset = start + peOffset + 24 + 0x60 + 8;
-                if (dataDirOffset + 8 > data.Length) return false;
-
-                int cliRva = BitConverter.ToInt32(data, dataDirOffset);
-                int cliSize = BitConverter.ToInt32(data, dataDirOffset + 4);
+                int cliDirOffset = start + peOffset + 24 + 0x60 + 8;
+                int cliRva = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(
+                    data.AsSpan(cliDirOffset, 4));
+                int cliSize = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(
+                    data.AsSpan(cliDirOffset + 4, 4));
 
                 return cliRva != 0 && cliSize > 0;
             }
@@ -255,6 +291,66 @@ namespace SPT.Fuyu.Patcher.Blazor.Services
             {
                 return false;
             }
+        }
+
+        private ValidateMethodInfo? FindValidateMethodInAssembly(byte[] exeData, MZHeader mzHeader)
+        {
+            try
+            {
+                using var ms = new MemoryStream(
+                    exeData,
+                    (int)mzHeader.Offset,
+                    mzHeader.PESize);
+                using var peReader = new PEReader(ms);
+
+                if (!peReader.HasMetadata)
+                    return null;
+
+                var metadataReader = peReader.GetMetadataReader();
+
+                const string targetTypeName = "ValidationUtil";
+                const string targetNamespace = "SPT.Launcher.Helpers";
+                const string targetMethodName = "Validate";
+
+                foreach (var typeDefHandle in metadataReader.TypeDefinitions)
+                {
+                    var typeDef = metadataReader.GetTypeDefinition(typeDefHandle);
+
+                    if (!metadataReader.StringComparer.Equals(typeDef.Name, targetTypeName) ||
+                        !metadataReader.StringComparer.Equals(typeDef.Namespace, targetNamespace))
+                        continue;
+
+                    foreach (var methodHandle in typeDef.GetMethods())
+                    {
+                        var methodDef = metadataReader.GetMethodDefinition(methodHandle);
+
+                        if (metadataReader.StringComparer.Equals(methodDef.Name, targetMethodName))
+                        {
+                            int rva = methodDef.RelativeVirtualAddress;
+                            if (rva == 0) continue;
+
+                            long methodOffsetInAssembly = RvaToFileOffset(peReader, rva);
+                            if (methodOffsetInAssembly < 0) continue;
+
+                            long absoluteOffset = mzHeader.Offset + methodOffsetInAssembly;
+
+                            return new ValidateMethodInfo(
+                                Namespace: targetNamespace,
+                                TypeName: targetTypeName,
+                                MethodName: targetMethodName,
+                                RVA: rva,
+                                StartOffsetInAssembly: methodOffsetInAssembly,
+                                StartOffsetInFile: absoluteOffset
+                            );
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
         }
 
         private long RvaToFileOffset(PEReader peReader, int rva)
@@ -275,98 +371,134 @@ namespace SPT.Fuyu.Patcher.Blazor.Services
             return -1;
         }
 
-        private List<PatternMatch> SearchPatternsNearMethod(byte[] exeData, long methodStart, AnalysisResult result)
+        private List<PatternMatch> SearchPatternsNearMethod(
+            byte[] exeData,
+            long methodStart,
+            AnalysisResult result)
         {
             var matches = new List<PatternMatch>();
+            ReadOnlySpan<byte> dataSpan = exeData;
 
-            int searchStart = (int)methodStart;
-            int searchEnd = Math.Min(exeData.Length - 4, searchStart + 2000);
+            int searchStart = Math.Max(0, (int)methodStart - 500);
+            int searchEnd = Math.Min(exeData.Length - 4, (int)methodStart + 1500);
 
-            for (int i = searchStart; i <= searchEnd; i++)
+            var searchPatterns = new (byte[] Pattern, string Type)[]
             {
-                if (exeData[i] == 0x16 && exeData[i + 1] == 0xFE &&
-                    exeData[i + 2] == 0x01 && exeData[i + 3] == 0x2A)
-                {
-                    var match = new PatternMatch
-                    {
-                        Offset = i,
-                        Pattern = new byte[] { 0x16, 0xFE, 0x01, 0x2A },
-                        PatternType = "Unpatched",
-                        Context = GetContextBytes(exeData, i, 32)
-                    };
-                    matches.Add(match);
-                    result.PatchOffset = i;
-                }
-            }
+                (new byte[] { 0x16, 0xFE, 0x01, 0x2A }, "Unpatched"),
+                (new byte[] { 0x25, 0xFE, 0x01, 0x2A }, "Patched")
+            };
 
-            for (int i = searchStart; i <= searchEnd; i++)
+            ReadOnlySpan<byte> searchArea = dataSpan.Slice(searchStart, searchEnd - searchStart);
+
+            foreach (var (pattern, patternType) in searchPatterns)
             {
-                if (exeData[i] == 0x25 && exeData[i + 1] == 0xFE &&
-                    exeData[i + 2] == 0x01 && exeData[i + 3] == 0x2A)
+                int index = 0;
+                while (index <= searchArea.Length - pattern.Length)
                 {
-                    var match = new PatternMatch
+                    if (searchArea.Slice(index, pattern.Length).SequenceEqual(pattern))
                     {
-                        Offset = i,
-                        Pattern = new byte[] { 0x25, 0xFE, 0x01, 0x2A },
-                        PatternType = "Patched",
-                        Context = GetContextBytes(exeData, i, 32)
-                    };
-                    matches.Add(match);
-                    result.AlreadyPatched = true;
+                        int absoluteOffset = searchStart + index;
+
+                        matches.Add(new PatternMatch(
+                            Offset: absoluteOffset,
+                            Pattern: pattern,
+                            PatternType: patternType,
+                            Context: GetContextBytes(exeData, absoluteOffset, 64)
+                        ));
+
+                        index += pattern.Length;
+                    }
+                    else
+                    {
+                        index++;
+                    }
                 }
             }
 
             if (matches.Count == 0)
             {
-                for (int i = searchStart; i <= searchEnd - 3; i++)
-                {
-                    if (exeData[i] == 0x16 && exeData[i + 1] == 0xFE && exeData[i + 3] == 0x2A)
-                    {
-                        var match = new PatternMatch
-                        {
-                            Offset = i,
-                            Pattern = new byte[] { exeData[i], exeData[i + 1], exeData[i + 2], exeData[i + 3] },
-                            PatternType = $"Variant_{exeData[i + 2]:X2}",
-                            Context = GetContextBytes(exeData, i, 32)
-                        };
-                        matches.Add(match);
-                    }
-                }
+                SearchVariantPatterns(exeData, searchStart, searchArea, matches);
             }
 
             return matches.OrderBy(m => m.Offset).ToList();
         }
 
+        private void SearchVariantPatterns(
+            byte[] exeData,
+            int searchStart,
+            ReadOnlySpan<byte> searchArea,
+            List<PatternMatch> matches)
+        {
+            for (int i = 0; i <= searchArea.Length - 4; i++)
+            {
+                if (searchArea[i] == 0x16 &&
+                    searchArea[i + 1] == 0xFE &&
+                    searchArea[i + 3] == 0x2A)
+                {
+                    int absoluteOffset = searchStart + i;
+                    var pattern = new byte[] {
+                        searchArea[i],
+                        searchArea[i + 1],
+                        searchArea[i + 2],
+                        searchArea[i + 3]
+                    };
+
+                    matches.Add(new PatternMatch(
+                        Offset: absoluteOffset,
+                        Pattern: pattern,
+                        PatternType: $"Variant_{searchArea[i + 2]:X2}",
+                        Context: GetContextBytes(exeData, absoluteOffset, 64)
+                    ));
+                }
+            }
+        }
+
         private byte[] GetContextBytes(byte[] data, int offset, int contextSize)
         {
             int start = Math.Max(0, offset - contextSize / 2);
-            int end = Math.Min(data.Length, offset + contextSize / 2);
+            int length = Math.Min(data.Length - start, contextSize);
 
-            var context = new byte[end - start];
-            Array.Copy(data, start, context, 0, context.Length);
-
-            return context;
+            return data.AsSpan(start, length).ToArray();
         }
 
-        public async Task<byte[]> ApplyPatchAsync(AnalysisResult result)
+        public async Task<byte[]> ApplyPatchAsync(
+            AnalysisResult result,
+            CancellationToken cancellationToken = default)
         {
             if (result.OriginalData == null || result.PatchOffset < 0)
-                throw new InvalidOperationException("Patch Error");
+                throw new InvalidOperationException("Offset error!");
 
-            return await ApplyPatchAsync(result.OriginalData, result.PatchOffset);
+            return await ApplyPatchAsync(
+                result.OriginalData,
+                result.PatchOffset,
+                cancellationToken);
         }
 
-        public async Task<byte[]> ApplyPatchAsync(byte[] originalData, long patchOffset)
+        public async Task<byte[]> ApplyPatchAsync(
+            byte[] originalData,
+            long patchOffset,
+            CancellationToken cancellationToken = default)
         {
-            var modifiedData = new byte[originalData.Length];
-            Array.Copy(originalData, modifiedData, originalData.Length);
+            byte[] rented = ByteArrayPool.Rent(originalData.Length);
 
-            if (patchOffset >= 0 && patchOffset + 3 < modifiedData.Length)
+            try
             {
-                modifiedData[patchOffset] = 0x25;
-            }
+                Array.Copy(originalData, 0, rented, 0, originalData.Length);
 
-            return await Task.FromResult(modifiedData);
+                if (patchOffset >= 0 && patchOffset < originalData.Length)
+                {
+                    rented[patchOffset] = 0x25;
+                }
+
+                byte[] result = new byte[originalData.Length];
+                Array.Copy(rented, 0, result, 0, originalData.Length);
+
+                return await Task.FromResult(result);
+            }
+            finally
+            {
+                ByteArrayPool.Return(rented);
+            }
         }
     }
 }
