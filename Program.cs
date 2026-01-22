@@ -1,4 +1,4 @@
-// Copyright (c) 2025 渟雲. All rights reserved.
+﻿// Copyright (c) 2025 渟雲. All rights reserved.
 //
 // Licensed under the TOSSRCU 2025.9 License (the "License");
 // you may not use this file except in compliance with the License.
@@ -9,27 +9,31 @@
 // -----------------------------------------------------------------------------
 // File: Program.cs
 // Author: 渟雲(quq[at]outlook.it)
-// Date: 2025-12-10
+// Date: 2025-1-22
 //
 // -----------------------------------------------------------------------------
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using SPT.Fuyu.Patcher.Blazor;
 using SPT.Fuyu.Patcher.Blazor.Services;
-using System.Buffers;
 using System.Diagnostics;
+using System.Net.Http.Headers;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp =>
+builder.Services.AddSingleton(sp =>
 {
     var httpClient = new HttpClient
     {
-        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
+        Timeout = TimeSpan.FromSeconds(15)
     };
+
+    httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
+    httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
 
     return httpClient;
 });
@@ -39,52 +43,28 @@ builder.Services.AddScoped<JsInteropService>();
 
 var host = builder.Build();
 
-_ = Task.Run(async () =>
-{
-    await Task.Delay(500);
-    await LightweightWarmupAsync(host);
-});
+_ = LightweightWarmupAsync(host);
 
 await host.RunAsync();
 
 static async Task LightweightWarmupAsync(WebAssemblyHost host)
 {
+    var stopwatch = Stopwatch.StartNew();
     try
     {
-        var stopwatch = Stopwatch.StartNew();
-
-        var warmupTasks = new List<Task>
-        {
+        await Task.WhenAll(
             Task.Run(() => PreloadService<ExeAnalyzerService>(host)),
             Task.Run(() => PreloadService<JsInteropService>(host))
-        };
-
-        var dotnetWarmup = Task.Run(() =>
-        {
-            try
-            {
-                _ = new MemoryStream(64);
-                _ = typeof(List<byte>);
-                _ = typeof(Dictionary<string, object>);
-                _ = ArrayPool<byte>.Shared.Rent(1);
-                _ = BitConverter.ToString(new byte[] { 0x01 });
-            }
-            catch {
-            }
-        });
-
-        warmupTasks.Add(dotnetWarmup);
-
-        var combinedTask = Task.WhenAll(warmupTasks);
-        var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(150));
-
-        await Task.WhenAny(combinedTask, timeoutTask);
-
-        stopwatch.Stop();
-        Console.WriteLine($"Warmuped: {stopwatch.ElapsedMilliseconds}ms");
+        );
     }
-    catch
+    catch (Exception ex)
     {
+        Console.WriteLine($"Warmup warning: {ex.Message}");
+    }
+    finally
+    {
+        stopwatch.Stop();
+        Console.WriteLine($"Warmup completed: {stopwatch.ElapsedMilliseconds}ms");
     }
 }
 
