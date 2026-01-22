@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
+    <TrimMode>link</TrimMode>
     <IlcTrimAnalysis>true</IlcTrimAnalysis>
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
     <BlazorWebAssemblyEnableLinking>true</BlazorWebAssemblyEnableLinking>
