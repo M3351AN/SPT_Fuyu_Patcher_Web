@@ -6,32 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>link</TrimMode>
     <IlcTrimAnalysis>true</IlcTrimAnalysis>
-    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
-    <BlazorWebAssemblyEnableLinking>true</BlazorWebAssemblyEnableLinking>
     <BlazorEnableCompression>true</BlazorEnableCompression>
     <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
-    <PublishCompress>true</PublishCompress>
-    <CompressSingleFiles>true</CompressSingleFiles>
-
-    <BlazorWebAssemblyEnableThreads>false</BlazorWebAssemblyEnableThreads>
-    <BlazorWebAssemblyLoadAllGlobalizationData>false</BlazorWebAssemblyLoadAllGlobalizationData>
-    <InvariantGlobalization>true</InvariantGlobalization>
-
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.2" PrivateAssets="all" />
     <PackageReference Include="System.Reflection.Metadata" Version="10.0.2" />
-
-    <TrimmerRemoveAssembly Include="System.Xml.Linq.dll" />
-    <TrimmerRemoveAssembly Include="System.Data.dll" />
-    <TrimmerRemoveAssembly Include="System.Net.Http.dll" />
   </ItemGroup>
 
 </Project>

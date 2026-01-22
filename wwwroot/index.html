@@ -112,16 +112,7 @@
     </div>
 
     <div id="blazor-error-ui">An unhandled error has occurred.<a href="" class="reload">Reload</a><a class="dismiss">🗙</a></div>
-    <script>
-        window.Blazor = {
-            loadBootResource: function (type, name, defaultUri, integrity) {
-                if (name.includes("icudt") || name.includes("dotnet.debug")) {
-                    return null;
-                }
-                return defaultUri;
-            }
-        };
-    </script>
+
     <script>
         setTimeout(() => {
             const script = document.createElement('script');
