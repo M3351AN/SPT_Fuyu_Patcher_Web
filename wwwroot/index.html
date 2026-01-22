@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Copyright (c) 2025 渟雲. All rights reserved.
 
   Licensed under the TOSSRCU 2025.9 License (the "License");
@@ -10,7 +10,7 @@
   -----------------------------------------------------------------------------
   File: index.html
   Author: 渟雲 (quq[at]outlook.it)
-  Date: 2025-12-10
+  Date: 2026-1-22
 
   -----------------------------------------------------------------------------
 -->
@@ -169,6 +169,26 @@
                 }, { once: true });
             }
         }, 1500);
+
+        ['dragover', 'drop', 'dragenter', 'dragleave'].forEach(evt => {
+            document.addEventListener(evt, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+        });
+
+        document.addEventListener('drop', e => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const fileInput = document.querySelector('input[type="file"]');
+                if (fileInput) {
+                    const dt = new DataTransfer();
+                    Array.from(files).forEach(f => dt.items.add(f));
+                    fileInput.files = dt.files;
+                    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>
