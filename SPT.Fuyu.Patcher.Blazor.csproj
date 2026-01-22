@@ -6,17 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RunAOTCompilation>false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
     <IlcTrimAnalysis>true</IlcTrimAnalysis>
-    <BlazorWebAssemblyEnableLinking>true</BlazorWebAssemblyEnableLinking>
     <BlazorEnableCompression>true</BlazorEnableCompression>
     <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
-    <PublishCompress>true</PublishCompress>
-    <CompressSingleFiles>true</CompressSingleFiles>
-    
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
