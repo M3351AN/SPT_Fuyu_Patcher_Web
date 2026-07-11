@@ -31,6 +31,7 @@ jobs:
 
     - name: Assemble deploy folder
       run: |
+        rm -f wwwroot/pkg/.gitignore
         mkdir -p ${{ env.DEPLOY_DIR }}
         cp -r wwwroot/* ${{ env.DEPLOY_DIR }}/
         touch ${{ env.DEPLOY_DIR }}/.nojekyll
@@ -56,4 +57,3 @@ jobs:
           .nojekyll
           CNAME
         single-commit: true
-
