@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  PUBLISH_OUTPUT_DIR: './publish/wwwroot'
+  DEPLOY_DIR: './deploy'
 
 jobs:
   build-and-deploy:
@@ -16,20 +16,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup .NET 9
-      uses: actions/setup-dotnet@v4
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
       with:
-        dotnet-version: '9.0.x'
+        targets: wasm32-unknown-unknown
 
-    - name: Restore dependencies
-      run: dotnet restore
+    - name: Install wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: 'latest'
 
-    - name: Publish project
+    - name: Build WASM package
+      run: wasm-pack build --target web --release --out-dir wwwroot/pkg
+
+    - name: Assemble deploy folder
       run: |
-        rm -rf ./bin ./obj ./publish
-        dotnet nuget locals all --clear
-        dotnet publish SPT.Fuyu.Patcher.Blazor.csproj -c Release -o ./publish -p:RunAOTCompilation=false --nologo -v diag
-        
+        mkdir -p ${{ env.DEPLOY_DIR }}
+        cp -r wwwroot/* ${{ env.DEPLOY_DIR }}/
+        touch ${{ env.DEPLOY_DIR }}/.nojekyll
+
     - name: Setup Node.js for CSS minification
       uses: actions/setup-node@v4
       with:
@@ -38,21 +43,17 @@ jobs:
     - name: Minify CSS files
       run: |
         npm install -g csso-cli
-        find ${{ env.PUBLISH_OUTPUT_DIR }} -name "*.css" -exec csso {} -o {} \;
-
-    - name: Create .nojekyll file
-      run: |
-        cd ${{ env.PUBLISH_OUTPUT_DIR }}
-        touch .nojekyll
+        find ${{ env.DEPLOY_DIR }} -name "*.css" -exec csso {} -o {} \;
 
     - name: Deploy to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         branch: gh-pages
-        folder: ${{ env.PUBLISH_OUTPUT_DIR }}
+        folder: ${{ env.DEPLOY_DIR }}
         clean: true
-        clean-exclude: | 
+        clean-exclude: |
           .nojekyll
           CNAME
         single-commit: true
+

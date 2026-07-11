@@ -10,28 +10,19 @@
   -----------------------------------------------------------------------------
   File: app.css
   Author: 渟雲 (quq[at]outlook.it)
-  Date: 2025-12-10
+  Date: 2026-07-11
 
   -----------------------------------------------------------------------------
 */
-#blazor-error-ui {
-    background: lightyellow;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-}
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
+@keyframes fader {
+    0%, 100% {
+        color: rgba(0, 0, 0, 1);
     }
+    50% {
+        color: rgba(0, 0, 0, 0);
+    }
+}
 
 * {
     margin: 0;
@@ -48,6 +39,32 @@ body {
     align-items: center;
     padding: 20px;
     font-display: swap;
+}
+
+#loading-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 9998;
+    opacity: 1;
+    transition: opacity 0.8s ease-out;
+}
+
+    #loading-mask.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+#loading-text {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 24px;
+    animation: fader 1s linear infinite;
+    z-index: 9999;
 }
 
 .container {
@@ -272,6 +289,40 @@ footer {
     font-size: 14px;
     border-top: 1px solid #ecf0f1;
 }
+
+.sponsor {
+    margin-top: 40px;
+    padding: 25px;
+    background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+    border: 1px solid #ffd5d5;
+    border-radius: 10px;
+    text-align: center;
+}
+
+    .sponsor h2 {
+        color: #e74c3c;
+        margin-bottom: 15px;
+    }
+
+    .sponsor p {
+        color: #7f8c8d;
+        font-size: 14px;
+        line-height: 1.7;
+        margin-bottom: 20px;
+    }
+
+    .sponsor-btn {
+        background: linear-gradient(90deg, #e74c3c, #c0392b);
+        display: inline-block;
+        width: auto;
+        padding: 12px 36px;
+        text-decoration: none;
+    }
+
+        .sponsor-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
 
     footer a {
         color: #3498db;
