@@ -1,4 +1,4 @@
-﻿<!--
+﻿﻿﻿<!--
   Copyright (c) 2025 渟雲. All rights reserved.
 
   Licensed under the TOSSRCU 2025.9 License (the "License");
@@ -10,199 +10,82 @@
   -----------------------------------------------------------------------------
   File: iframe.html
   Author: 渟雲 (quq[at]outlook.it)
-  Date: 2026-2-20
+  Date: 2026-07-11
 
   -----------------------------------------------------------------------------
 -->
 <!DOCTYPE html>
-<html lang="en-us">
+<html lang="zh-CN">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SPT Fuyu Patcher</title>
-    <base href="/" />
     <link rel="icon" type="image/x-icon" href="icon.ico">
-    <link rel="preload" href="_framework/blazor.webassembly.js" as="script" crossorigin="anonymous">
-    <link rel="preload" href="_framework/dotnet.js" as="script" crossorigin="anonymous">
-    <link rel="stylesheet" href="css/app.css" media="print" onload="this.media='all'" />
-    <link href="SPT.Fuyu.Patcher.Blazor.styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/app.css" />
     <style>
-        * {
-            margin: 0;
+        body {
+            background: transparent;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             padding: 0;
-            box-sizing: border-box;
         }
-
-        @keyframes fader {
-
-            0%, 100% {
-                color: rgba(0, 0, 0, 1);
-            }
-
-            50% {
-                color: rgba(0, 0, 0, 0);
-            }
-        }
-
-        #loading-mask {
-            position: fixed;
-            top: 0;
-            left: 0;
+        .content {
             width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
-            z-index: 9998;
-            opacity: 1;
-            transition: opacity 0.8s ease-out;
+            max-width: 100%;
+            border-radius: 0;
+            box-shadow: none;
         }
-
-            #loading-mask.hidden {
-                opacity: 0;
-                pointer-events: none;
-            }
-
-        #loading-text {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            font-size: 24px;
-            animation: fader 1s linear infinite;
-            z-index: 9999;
-        }
-
-
-        .loading-progress {
-            position: relative;
-            display: block;
-            width: 8rem;
-            height: 8rem;
-            margin: 20vh auto 1rem auto;
-            z-index: 9999;
-        }
-
-            .loading-progress circle {
-                fill: none;
-                stroke: #e0e0e0;
-                stroke-width: 0.6rem;
-                transform-origin: 50% 50%;
-                transform: rotate(-90deg);
-            }
-
-                .loading-progress circle:last-child {
-                    stroke: #1b6ec2;
-                    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-                    transition: stroke-dasharray 0.05s ease-in-out;
-                }
-
-        .loading-progress-text {
-            position: absolute;
+        .sponsor-hint {
             text-align: center;
-            font-weight: bold;
-            inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
-            z-index: 9999;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #bdc3c7;
         }
-
-            .loading-progress-text:after {
-                content: var(--blazor-load-percentage-text, "Loading");
-            }
+        .sponsor-hint a {
+            color: #95a5a6;
+            text-decoration: none;
+            border-bottom: 1px dotted #95a5a6;
+        }
+        .sponsor-hint a:hover {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
     </style>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3446327311337704"
-            crossorigin="anonymous"></script>
 </head>
 <body>
-    <div id="loading-mask"></div>
-    <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+    <div id="loading-mask">
         <div id="loading-text">少女祈祷中...</div>
     </div>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
+    <div class="content">
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3 class="upload-text" id="uploadText"></h3>
+            <p id="fileSupport"></p>
+            <input type="file" accept=".exe" class="file-input" id="fileInput" />
+            <div class="file-info" id="fileInfo" style="display:none"></div>
+        </div>
+
+        <div class="progress-container" id="progressContainer" style="display:none">
+            <div class="progress">
+                <div class="progress-bar" id="progressBar" style="width:0%">
+                    <span id="progressPct">0%</span>
+                </div>
+            </div>
+            <div class="progress-text" id="progressText"></div>
+        </div>
+
+        <button class="btn" id="patchButton" disabled></button>
+
+        <div class="status" id="status" style="display:none"></div>
     </div>
 
-    <script>
-        setTimeout(() => {
-            const script = document.createElement('script');
-            script.src = '_framework/blazor.webassembly.js';
-            script.async = true;
-            script.crossOrigin = 'anonymous';
-            script.onload = function () {
-                const dotnetScript = document.createElement('script');
-                dotnetScript.src = '_framework/dotnet.js';
-                dotnetScript.async = true;
-                dotnetScript.crossOrigin = 'anonymous';
-                document.head.appendChild(dotnetScript);
-            };
-            document.head.appendChild(script);
-        }, 100);
-    </script>
+    <footer>
+        <p>SPT Fuyu Patcher Web &copy; 2025 渟雲 | <a href="https://github.com/M3351AN/SPT_Fuyu_Patcher_Web" target="_blank">GitHub</a></p>
+        <p class="sponsor-hint" id="sponsorHint"></p>
+    </footer>
 
-    <script>
-        const errorUi = document.getElementById('blazor-error-ui');
-        errorUi.style.display = 'none';
-
-        window.initiateFileDownload = async (fileName, dotNetStream) => {
-            try {
-                const data = await dotNetStream.arrayBuffer();
-                const blob = new Blob([data]);
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                return true;
-            } catch {
-                return false;
-            }
-        };
-
-        window.sendToParent = (message) => {
-            if (isInIframe && window.parent) {
-                window.parent.postMessage({
-                    type: 'SPT_PATCHER_MESSAGE',
-                    data: message
-                }, '*');
-            }
-        };
-
-        setTimeout(() => {
-            const mask = document.getElementById('loading-mask');
-            if (mask && !mask.classList.contains('hidden')) {
-                mask.classList.add('hidden');
-                mask.addEventListener('transitionend', function () {
-                    mask.remove();
-                }, { once: true });
-            }
-        }, 500);
-
-        ['dragover', 'drop', 'dragenter', 'dragleave'].forEach(evt => {
-            document.addEventListener(evt, e => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, { passive: false });
-        });
-
-        document.addEventListener('drop', e => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const fileInput = document.querySelector('input[type="file"]');
-                if (fileInput) {
-                    const dt = new DataTransfer();
-                    Array.from(files).forEach(f => dt.items.add(f));
-                    fileInput.files = dt.files;
-                    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            }
-        }, { passive: false });
-    </script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
