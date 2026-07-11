@@ -1,0 +1,91 @@
+﻿﻿﻿﻿<!--
+  Copyright (c) 2025 渟雲. All rights reserved.
+
+  Licensed under the TOSSRCU 2025.9 License (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/M3351AN/M3351AN/9e7630a8511b8306c62952ca1a4f1ce0cc5b784a/LICENSE
+
+  -----------------------------------------------------------------------------
+  File: iframe.html
+  Author: 渟雲 (quq[at]outlook.it)
+  Date: 2026-07-11
+
+  -----------------------------------------------------------------------------
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPT Fuyu Patcher</title>
+    <link rel="icon" type="image/x-icon" href="icon.ico">
+    <link rel="stylesheet" href="css/app.css" />
+    <style>
+        body {
+            background: transparent;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+        }
+        .content {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .sponsor-hint {
+            text-align: center;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #bdc3c7;
+        }
+        .sponsor-hint a {
+            color: #95a5a6;
+            text-decoration: none;
+            border-bottom: 1px dotted #95a5a6;
+        }
+        .sponsor-hint a:hover {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-mask">
+        <div id="loading-text">少女祈祷中...</div>
+    </div>
+
+    <div class="content">
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3 class="upload-text" id="uploadText"></h3>
+            <p id="fileSupport"></p>
+            <input type="file" accept=".exe" class="file-input" id="fileInput" />
+            <div class="file-info" id="fileInfo" style="display:none"></div>
+        </div>
+
+        <div class="progress-container" id="progressContainer" style="display:none">
+            <div class="progress">
+                <div class="progress-bar" id="progressBar" style="width:0%">
+                    <span id="progressPct">0%</span>
+                </div>
+            </div>
+            <div class="progress-text" id="progressText"></div>
+        </div>
+
+        <button class="btn" id="patchButton" disabled></button>
+
+        <div class="status" id="status" style="display:none"></div>
+    </div>
+
+    <footer>
+        <p>SPT Fuyu Patcher Web &copy; 2025-2026 渟雲 | <a href="https://github.com/M3351AN/SPT_Fuyu_Patcher_Web" target="_blank">GitHub</a></p>
+        <p class="sponsor-hint" id="sponsorHint"></p>
+    </footer>
+
+    <script type="module" src="js/app.js" data-cfasync="false"></script>
+</body>
+</html>

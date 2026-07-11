@@ -1,0 +1,17 @@
+{
+  "name": "spt_fuyu_patcher_web",
+  "type": "module",
+  "description": "A pure-frontend WASM patcher for the SPT Fuyu launcher",
+  "version": "0.1.0",
+  "license": "SEE LICENSE IN LICENSE",
+  "files": [
+    "spt_fuyu_patcher_web_bg.wasm",
+    "spt_fuyu_patcher_web.js",
+    "spt_fuyu_patcher_web.d.ts"
+  ],
+  "main": "spt_fuyu_patcher_web.js",
+  "types": "spt_fuyu_patcher_web.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

@@ -1,0 +1,102 @@
+﻿﻿﻿﻿<!--
+  Copyright (c) 2025 渟雲. All rights reserved.
+
+  Licensed under the TOSSRCU 2025.9 License (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/M3351AN/M3351AN/9e7630a8511b8306c62952ca1a4f1ce0cc5b784a/LICENSE
+
+  -----------------------------------------------------------------------------
+  File: index.html
+  Author: 渟雲 (quq[at]outlook.it)
+  Date: 2026-07-11
+
+  -----------------------------------------------------------------------------
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPT Fuyu Patcher</title>
+    <link rel="icon" type="image/x-icon" href="icon.ico">
+    <link rel="stylesheet" href="css/app.css" />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3446327311337704"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+    <div id="loading-mask">
+        <div id="loading-text">少女祈祷中...</div>
+    </div>
+
+    <div class="container">
+        <header>
+            <button class="lang-toggle" id="langToggle">EN</button>
+            <h1 id="title">SPT Fuyu Patcher</h1>
+            <p id="subtitle"></p>
+        </header>
+
+        <div class="content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3 class="upload-text" id="uploadText"></h3>
+                <p id="fileSupport"></p>
+                <input type="file" accept=".exe" class="file-input" id="fileInput" />
+                <div class="file-info" id="fileInfo" style="display:none"></div>
+            </div>
+
+            <div class="progress-container" id="progressContainer" style="display:none">
+                <div class="progress">
+                    <div class="progress-bar" id="progressBar" style="width:0%">
+                        <span id="progressPct">0%</span>
+                    </div>
+                </div>
+                <div class="progress-text" id="progressText"></div>
+            </div>
+
+            <button class="btn" id="patchButton" disabled></button>
+
+            <div class="status" id="status" style="display:none"></div>
+
+            <div class="features">
+                <h2 id="advantagesTitle"></h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3 id="feature1Title"></h3>
+                        <p id="feature1Desc"></p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🗑️</div>
+                        <h3 id="feature2Title"></h3>
+                        <p id="feature2Desc"></p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🛡️</div>
+                        <h3 id="feature3Title"></h3>
+                        <p id="feature3Desc"></p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌐</div>
+                        <h3 id="feature4Title"></h3>
+                        <p id="feature4Desc"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sponsor">
+                <h2 id="sponsorTitle"></h2>
+                <p id="sponsorText"></p>
+                <a href="https://afdian.com/a/M3351AN" target="_blank" rel="noopener" class="btn sponsor-btn" id="sponsorButton"></a>
+            </div>
+        </div>
+
+        <footer>
+            <p>SPT Fuyu Patcher Web &copy; 2025-2026 渟雲 | <a href="https://github.com/M3351AN/SPT_Fuyu_Patcher_Web" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <script type="module" src="js/app.js" data-cfasync="false"></script>
+</body>
+</html>
