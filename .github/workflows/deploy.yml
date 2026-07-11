@@ -35,16 +35,6 @@ jobs:
         cp -r wwwroot/* ${{ env.DEPLOY_DIR }}/
         touch ${{ env.DEPLOY_DIR }}/.nojekyll
 
-    - name: Setup Node.js for CSS minification
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
-    - name: Minify CSS files
-      run: |
-        npm install -g csso-cli
-        find ${{ env.DEPLOY_DIR }} -name "*.css" -exec csso {} -o {} \;
-
     - name: Deploy to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@v4
       with:
