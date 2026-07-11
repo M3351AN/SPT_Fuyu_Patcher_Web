@@ -1,4 +1,4 @@
-﻿﻿# SPT_Fuyu_Patcher_Web
+﻿# SPT_Fuyu_Patcher_Web
 
 A pure-frontend web-based patcher for the SPT Fuyu launcher. All processing happens entirely in the browser via WebAssembly — no server uploads, no external dependencies.
 
